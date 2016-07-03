@@ -39,7 +39,7 @@ class TextSequenceData:
     def seq_to_text(self, seq):
         chars = []
         for char_arr in seq:
-            ind = np.where(char_arr)[0][0]
+            ind = np.argmax(char_arr)
             chars.append(self.indices_char[ind])
         return ''.join(chars)
 
