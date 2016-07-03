@@ -202,7 +202,8 @@ class Seq2seq(Sequential):
 
         '''
         def __init__(self, output_dim, hidden_dim, output_length, depth=1, broadcast_state=True,
-                     inner_broadcast_state=True, peek=False, dropout=0.1, **kwargs):
+                     inner_broadcast_state=True, peek=False, dropout=0.1, additional_layer=None,
+                     **kwargs):
                 super(Seq2seq, self).__init__()
                 if type(depth) not in [list, tuple]:
                         depth = (depth, depth)
@@ -216,6 +217,8 @@ class Seq2seq(Sequential):
                         shape = (None, None, kwargs['input_dim'])
                         del kwargs['input_dim']
                 lstms = []
+                if additional_layer is not None:
+                    self.add(additional_layer)
                 layer = LSTMEncoder(batch_input_shape=shape, output_dim=hidden_dim,
                                     state_input=False, return_sequences=depth[0] > 1, **kwargs)
                 self.add(layer)
