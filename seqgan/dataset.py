@@ -1,15 +1,21 @@
-from keras.utils.data_utils import get_file
+import re
 import numpy as np
+from keras.utils.data_utils import get_file
 
 
 class TextSequenceData:
-    def __init__(self, fname, origin, inlen=100, outlen=50, step=10):
+    def __init__(self, fname, origin, inlen=100, outlen=50, 
+                 step=10, strip_ws=True):
         self.inlen = inlen
         self.outlen = outlen
         self.step = step
 
         self.path = get_file(fname, origin=origin)
         text = open(self.path, encoding="utf-8").read().lower()
+
+        if strip_ws:
+            text = re.sub(' +', ' ', text).strip()
+            text = re.sub('\n+', '\n', text).strip()
 
         self.chars = sorted(list(set(text)))
         self.char_indices = dict((c, i) for i, c in enumerate(self.chars))
