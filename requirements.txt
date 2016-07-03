@@ -1,6 +1,7 @@
 numpy>=1.10.2
 scipy>=0.16.1
 keras>=1.0.0
+git+git://github.com/farizrahman4u/seq2seq.git#egg=seq2seq
 pytest>=2.8.5
 pytest-cov>=2.2.1
 pytest-flake8>=0.5
