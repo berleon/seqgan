@@ -91,3 +91,14 @@ def test_seqgan_train_on_batch(g, d, m, seq_one_hot):
     real = np.concatenate([seq_one_hot, seq_one_hot], axis=1)
     losses = gan.train_on_batch(seq_one_hot, real)
     print(losses)
+
+
+def test_seqgan_fit_generator(g, d, m, seq_one_hot):
+    def generator():
+        while True:
+            fake_seed = seq_one_hot
+            real = np.concatenate([seq_one_hot, seq_one_hot], axis=1)
+            yield fake_seed, real
+
+    gan = SeqGAN(g, d, m, Adam(), Adam())
+    gan.fit_generator(generator(), 3, 20, verbose=True)

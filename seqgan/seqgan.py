@@ -74,7 +74,11 @@ class SeqGAN:
         return g_loss, d_loss, m_loss
 
     def fit_generator(self, generator, nb_epoch, nb_batches_per_epoch, callbacks=[],
+                      batch_size=None,
                       verbose=False):
+        if batch_size is None:
+            batch_size = 2*len(next(generator)[0])
+
         out_labels = ['g', 'd', 'm']
 
         self.history = cbks.History()
@@ -85,7 +89,7 @@ class SeqGAN:
         callbacks._set_model(self)
         callbacks._set_params({
             'nb_epoch': nb_epoch,
-            'nb_sample': nb_batches_per_epoch,
+            'nb_sample': nb_batches_per_epoch*batch_size,
             'verbose': verbose,
             'metrics': out_labels,
         })
