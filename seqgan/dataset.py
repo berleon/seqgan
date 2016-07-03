@@ -1,7 +1,5 @@
 from keras.utils.data_utils import get_file
 import numpy as np
-import random
-import sys
 
 
 class TextSequenceData:
@@ -19,7 +17,6 @@ class TextSequenceData:
 
         self.build_dataset(text)
 
-
     def build_dataset(self, text):
         insequences = []
         outsequences = []
@@ -28,9 +25,9 @@ class TextSequenceData:
             insequences.append(text[i:iout])
             outsequences.append(text[iout:iout+self.outlen])
 
-        self.X = np.zeros((len(insequences), self.inlen, len(self.chars)), 
+        self.X = np.zeros((len(insequences), self.inlen, len(self.chars)),
                           dtype=np.bool)
-        self.Y = np.zeros((len(outsequences), self.outlen, len(self.chars)), 
+        self.Y = np.zeros((len(outsequences), self.outlen, len(self.chars)),
                           dtype=np.bool)
         for i, seq in enumerate(insequences):
             for t, char in enumerate(seq):
@@ -50,6 +47,3 @@ class TextSequenceData:
         X, Y = batch
         return zip([self.seq_to_text(s) for s in X],
                    [self.seq_to_text(s) for s in Y])
-
-
-
