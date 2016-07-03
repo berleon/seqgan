@@ -1,5 +1,6 @@
 
 from keras.engine.training import Model
+from keras.engine.topology import merge
 import numpy as np
 import keras.backend as K
 from contextlib import contextmanager
@@ -19,6 +20,13 @@ def trainable(model, trainable):
         layer.trainable = t
 
 
+def prob_to_sentence(prob):
+    fake_idx = np.argmax(prob, axis=-1)
+    fake = np.zeros_like(prob)
+    fake[:, :, fake_idx] = 1
+    return fake
+
+
 class SeqGAN:
     def __init__(self, g, d, m, g_optimizer, d_optimizer):
         self.g = g
@@ -26,38 +34,43 @@ class SeqGAN:
         self.m = m
 
         self.z, self.seq_input = self.g.inputs
-        self.fake_prob = self.g.outputs
+        self.fake_prob, = self.g.outputs
         with trainable(m, False):
-            self.m_realness = self.m(self.fake_prob)
+            m_input = merge([self.seq_input, self.fake_prob], mode='concat', concat_axis=1)
+            self.m_realness = self.m(m_input)
             self.model_fit_g = Model([self.z, self.seq_input], [self.m_realness])
             self.model_fit_g.compile(g_optimizer, K.binary_crossentropy)
 
         self.d.compile(d_optimizer, loss=K.binary_crossentropy)
 
-    @property
-    def z_shape(self):
+    def z_shape(self, batch_size=64):
         layer, _, _ = self.z._keras_history
-        return layer.output_shape
+        return (batch_size,) + layer.output_shape[1:]
 
-    def sample_z(self):
-        shape = self.z_shape
+    def sample_z(self, batch_size=64):
+        shape = self.z_shape(batch_size)
         return np.random.uniform(-1, 1, shape)
 
-    def generate(self, seq_input, z, batch_size=32):
-        return self.m.predict([seq_input, z], batch_size=batch_size)
+    def generate(self, z, seq_input, batch_size=32):
+        return self.g.predict([z, seq_input], batch_size=batch_size)
 
     def train_on_batch(self, seq_input, real, d_target=None):
+        nb_real = len(real)
+        nb_fake = len(seq_input)
         if d_target is None:
             d_target = np.concatenate([
-                np.zeros((len(seq_input), 1)),
-                np.ones((len(real), 1))
+                np.zeros((nb_fake, 1)),
+                np.ones((nb_real, 1))
             ])
-        fake_prob = self.generate(seq_input, self.sample_z())
-        fake = np.argmax(fake_prob, axis=TODO)
-        d_loss = self.d.train_on_batch(fake, real)
-        d_realness = self.d.predict([fake, real], d_target)
-        m_loss = self.m.train_on_batch(fake_prob, d_realness)
-        g_loss = self.g.train_on_batch(seq_input, self.sample_z())
+        fake_prob = self.generate(self.sample_z(nb_fake), seq_input)
+        fake = np.concatenate([seq_input, prob_to_sentence(fake_prob)], axis=1)
+        fake_and_real = np.concatenate([fake, real], axis=0)
+        d_loss = self.d.train_on_batch(fake_and_real, d_target)
+        d_realness = self.d.predict(fake)
+        m_loss = self.m.train_on_batch(
+            np.concatenate([seq_input, fake_prob], axis=1), d_realness)
+        g_loss = self.model_fit_g.train_on_batch([self.sample_z(nb_fake), seq_input],
+                                                 np.ones((nb_fake, 1)))
         return g_loss, d_loss, m_loss
 
     def fit_generator(self, generator, nb_epoch, nb_batches_per_epoch, callbacks=[],
